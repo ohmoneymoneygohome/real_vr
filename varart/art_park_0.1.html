@@ -652,21 +652,6 @@
 <a-scene raycaster="far: 100; objects: [link];" cursor="rayOrigin: mouse">
     <!--资源列表 begin-->
     <a-assets>
-        <video id="video1" style="display:none" autoplay loop crossorigin="anonymous" playsinline webkit-playsinline>
-            <!-- MP4 video source. -->
-            <source type="video/mp4"
-                    src="assets/media/cube.mp4"/>
-        </video>
-        <video id="video2" style="display:none" autoplay loop crossorigin="anonymous" playsinline webkit-playsinline>
-            <!-- MP4 video source. -->
-            <source type="video/mp4"
-                    src="assets/media/test.mp4"/>
-        </video>
-        <!--<audio id="song" src="assets/media/bgm.mp3" autoplay loop></audio>-->
-        <!--展厅主图-->
-
-        <!--作品图-->
-
         <img id="frame1" src="assets/img/painting/frame1.jpg">
         <img id="frame2" src="assets/img/painting/frame2.jpg">
         <img id="frame3" src="assets/img/painting/frame3.jpg">
@@ -859,23 +844,17 @@
 
     </rw-room>
     <!--全局场景 end-->
-    <a-sphere visible="true" id="out1" position="0 30 0" radius="5" shadow material="shader:noise;color:#035DDA;weight:8"></a-sphere>
-    <a-sphere visible="true" id="out2" position="10 15 0" radius="5" shadow material="shader:noise;color:#035DDA;weight:8"></a-sphere>
-    <a-sphere visible="true" id="out3" position="0 15 10" radius="5" shadow material="shader:noise;color:#035DDA;weight:8"></a-sphere>
-    <a-sphere visible="true" id="out4" position="-10 15 0" radius="5" shadow material="shader:noise;color:#035DDA;weight:8"></a-sphere>
-    <a-node id="dummy"></a-node>
+    <a-sphere visible="true" id="out1" position="0 30 0" radius="20" shadow material="shader:noise;color:#035DDA;weight:8"
+    ></a-sphere>
+
 </a-scene>
 </body>
 <script src="js/components/interactive.js"></script>
 <script>
 
         document.querySelector("#dummy").load(function(){
-            console.log(6666666666666666);
-
                 $("#status").delay().fadeOut(); // will first fade out the loading animation
-            $("#preloader").delay().fadeOut("slow"); // will fade out the white DIV that covers the website.
-
-
+            $("#preloader").delay(450).fadeOut("slow"); // will fade out the white DIV that covers the website.
         })
 
 
