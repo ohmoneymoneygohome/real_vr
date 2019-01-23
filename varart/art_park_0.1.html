@@ -603,49 +603,6 @@
     <audio id="bgm" loop="loop">
         <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
     </audio>
-
-    <audio id="bgm_1" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_2" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_3" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_4" loop="loop">
-        <source src="assets/media/scene4_Skuggamyndir.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_5" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_6" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_7" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_8" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_9" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_10" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_11" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_12" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_x" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
-    <audio id="bgm_y" loop="loop">
-        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
-    </audio>
 </div>
 <!--音乐控制 end-->
 <!--html传统标签 end-->
@@ -655,8 +612,6 @@
         <img id="frame1" src="assets/img/painting/frame1.jpg">
         <img id="frame2" src="assets/img/painting/frame2.jpg">
         <img id="frame3" src="assets/img/painting/frame3.jpg">
-        <img id="frame4" src="assets/img/painting/frame4.jpg">
-        <img id="frame5" src="assets/img/painting/frame5.jpg">
         <img id="door_texture" src="assets/room/door.jpg">
         <!--<audio id="neigh" src="assets/media/bgm.mp3"></audio>-->
         <a-asset-item id="frame" src="assets/models/frame.glb"></a-asset-item>
@@ -736,7 +691,7 @@
         </a-entity>
     </a-entity>
     <a-sky color="black"></a-sky>
-    <a-entity id="fly" mixin="rotate" position="-6.5 1.6 -38" fly-track-control=""
+    <a-entity id="fly" mixin="rotate" position="-6.5 1.6 -40" fly-track-control=""
               animation="to: 0 360 0; dur: 8000; easing: linear" visible="">
         <a-entity id="fly_inner" rotation="50 10 0" position="0 0 0" radius="0.2">
             <a-entity rotation="-45 0 90">
@@ -846,17 +801,15 @@
     <!--全局场景 end-->
     <a-sphere visible="true" id="out1" position="0 30 0" radius="20" shadow material="shader:noise;color:#035DDA;weight:8"
     ></a-sphere>
-
+    <a-node id="dummy"></a-node>
 </a-scene>
 </body>
 <script src="js/components/interactive.js"></script>
 <script>
-
+    //加载等待
         document.querySelector("#dummy").load(function(){
                 $("#status").delay().fadeOut(); // will first fade out the loading animation
             $("#preloader").delay(450).fadeOut("slow"); // will fade out the white DIV that covers the website.
         })
-
-
 </script>
 </html>
