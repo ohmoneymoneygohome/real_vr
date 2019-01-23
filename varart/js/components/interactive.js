@@ -464,7 +464,7 @@ AFRAME.registerComponent('fly-track-control', {
                     easing:"easeInOutQuad",
                     dur:"20500",
                     loop: false,
-                    to:"0 1.6 0",
+                    to:"0 2 0",
                 });
                 let time1 = setTimeout(function () {
 
