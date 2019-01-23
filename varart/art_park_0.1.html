@@ -630,20 +630,7 @@
         </video>
         <!--<audio id="song" src="assets/media/bgm.mp3" autoplay loop></audio>-->
         <!--展厅主图-->
-        <img id="scene1" src="assets/img/white.jpg">
-        <img id="scene2" src="assets/img/moon.jpg">
-        <img id="scene3" src="assets/img/star3.jpg">
-        <img id="scene4" src="assets/img/painting/famous.jpg">
-        <img id="scene5" src="assets/img/star5.jpg">
-        <img id="scene6" src="assets/img/star6.jpg">
-        <img id="scene7" src="assets/img/star7.jpg">
-        <img id="scene8" src="assets/img/star8.jpg">
-        <img id="scene9" src="assets/img/star9.jpg">
-        <img id="scene10" src="assets/img/star10.jpg">
-        <img id="scene11" src="assets/img/star11.jpg">
-        <img id="scene12" src="assets/img/star12.jpg">
-        <img id="earth" src="assets/img/ground.jpg">
-        <img id="moon" src="assets/img/moon.jpg">
+
         <!--作品图-->
         <img id="youhua1" src="assets/img/painting/youhua1.jpg">
         <img id="youhua2" src="assets/img/painting/youhua2.jpg">
@@ -658,8 +645,6 @@
         <!--<audio id="neigh" src="assets/media/bgm.mp3"></audio>-->
         <a-asset-item id="dawei-obj" src="assets/models/crate/file.obj"></a-asset-item>
         <a-asset-item id="frame" src="assets/models/frame.glb"></a-asset-item>
-        <a-asset-item id="MSL_clean" src="assets/models/MSL_clean.obj"></a-asset-item>
-        <a-asset-item id="moon_surface" src="assets/models/moon_surface.glb"></a-asset-item>
         <a-asset-item id="handle" src="assets/room/handle.glb"></a-asset-item>
         <a-asset-item id="real" src="assets/room/real.glb"></a-asset-item>
         <!--公共属性-->
@@ -766,7 +751,7 @@
                 <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
             </a-gltf-model>
             <a-gltf-model id="room_paint2" src="#frame" position="3.5 1.7 -0.7" scale="3 3 3" material="shader:flat">
-                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+                <a-image src="#frame2" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
             </a-gltf-model>
         </rw-wall>
         <rw-wall material="color:#F88">
@@ -784,7 +769,7 @@
                      material="color:black;shader:standard;rotation:0 210 0"></a-light>
             <a-gltf-model id="room_paint3" src="#frame" position="2.5 1.7 -1" scale="4.5 4.5 4.5"
                           material="shader:flat">
-                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+                <a-image src="#frame3" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
             </a-gltf-model>
         </rw-wall>
         <rw-floor mixin="floorMat"></rw-floor>
