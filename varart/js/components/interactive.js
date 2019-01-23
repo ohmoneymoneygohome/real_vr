@@ -317,14 +317,14 @@ AFRAME.registerComponent('come-in-here', {
             let pos = el.object3D.getWorldPosition();
             let pos0 = {x:camOldPos.x,y:camOldPos.y,z:camOldPos.z};
             let fly_pos0 = {x:camOldPos.x,y:camOldPos.y+1,z:camOldPos.z};
-                camPos.setAttribute("animation__come", {
-                    property: "position",
-                    dir: "liner",
-                    easing:"easeInOutQuad",
-                    dur:"1500",
-                    loop: false,
-                    to:pos,
-                });
+            camPos.setAttribute("animation__come", {
+                property: "position",
+                dir: "liner",
+                easing:"easeInOutQuad",
+                dur:"1500",
+                loop: false,
+                to:pos,
+            });
             let time = setTimeout(function () {
                 if(!isFlyStarted){
                     fly.setAttribute("visible","true");
@@ -425,8 +425,9 @@ AFRAME.registerComponent('fly-track-control', {
             //注视后变色 镜头移动到另一房间
             if(fly_tep_2){
                 let pos = el.object3D.getWorldPosition();
-                console.log("pos");
-                console.log(pos);
+                for (let i = 0; i < els.length; i++) {
+                    els[i].setAttribute("material",{color:"#009688"})
+                }
                 camPos.setAttribute("animation__step2", {
                     property: "position",
                     dir: "liner",
@@ -445,6 +446,9 @@ AFRAME.registerComponent('fly-track-control', {
             }
             //注视飞机 进入中心世界
             if(fly_tep_3){
+                for (let i = 0; i < els.length; i++) {
+                    els[i].setAttribute("material",{color:"white"})
+                }
                 el.setAttribute("animation__fly3", {
                     property: "position",
                     dir: "liner",
@@ -464,7 +468,7 @@ AFRAME.registerComponent('fly-track-control', {
                 });
                 let time1 = setTimeout(function () {
 
-                    fly_inner.setAttribute("position","8 0 0");
+                    fly_inner.setAttribute("position","3 0 0");
                     clearTimeout(time1);
                 }, 20000);
 
@@ -499,6 +503,25 @@ for (let i = 0; i < els.length; i++) {
         camPos.setAttribute("position", '0 1.6 0');
     });
 }
+/**
+ * Create ton of entities at random positions.
+ */
+AFRAME.registerComponent('entity-generator', {
+    schema: {
+        mixin: {default: ''},
+        num: {default: 1000}
+    },
+
+    init: function () {
+        var data = this.data;
+        // Create entities with supplied mixin.
+        for (var i = 0; i < data.num; i++) {
+            var entity = document.createElement('a-entity');
+            entity.setAttribute('mixin', data.mixin);
+            this.el.appendChild(entity);
+        }
+    }
+});
 // document.querySelector("a-camera").addEventListener("componentchanged", function (evt) {
 //     // The console message outputs 'rotation' and never outputs 'position'
 //     //console.log(evt);

@@ -640,6 +640,15 @@
                  pivot="0.125 0 0" scale="0.5 0.625 0.5"></a-mixin>
         <a-mixin id="wing2" color="#F88"></a-mixin>
         <!--小飞机 end-->
+        <!--随机球 start-->
+
+        <a-mixin id="sphere" geometry="primitive: cylinder; height: 10; radius: 0.1" material="shader:noise;color:#4CAF50;weight:2;transparent:true;opacity:0.1" >
+        </a-mixin>
+        <a-mixin id="random-3" random-spherical-position="radius:150"></a-mixin>
+        <a-mixin id="yellow"  random-rotation ></a-mixin>
+        <a-mixin id="ani" animation="property: rotation;dir: line; dur: 10000; to: 360 0 0; loop: true"
+        ></a-mixin>
+        <!--随机球 end-->
     </a-assets>
     <!--资源列表 begin-->
     <!--轨迹控制 begin-->
@@ -703,7 +712,7 @@
         </a-entity>
     </a-entity>
     <a-entity position="12.5 0 -2.5"></a-entity>
-    <rw-room position="-7.5 0 -32.5" width="5" length="5" height="4" light="type:point;intensity:0.2">
+    <rw-room position="-7.5 0 -32.5" width="5" length="5" height="4" light="type:point;intensity:0.4">
 
         <rw-wall material="color:#F88">
             <rw-doorhole id="holeA">
@@ -749,7 +758,7 @@
         <rw-ceiling material="color:#BB6"></rw-ceiling>
         <rw-sides material="color:#BB6"></rw-sides>
     </rw-doorlink>
-    <rw-room position="-5 0 -32.7" height="4">
+    <rw-room position="-5 0 -32.7" height="4" light="type:point;intensity:0.5">
 
         <rw-wall position="-2 0 0" material="color:#26C6DA"></rw-wall>
         <rw-wall position=" 2 0 0" material="color:#26C6DA;">
@@ -766,7 +775,7 @@
         </rw-wall>
 
         <rw-floor mixin="floorMat"></rw-floor>
-        <rw-ceiling material="color:#99A" light="type:point;intensity:0.4"></rw-ceiling>
+        <rw-ceiling material="color:#99A" light="type:point;intensity:0.3"></rw-ceiling>
 
     </rw-room>
     <rw-room position="-3 0 -35" height="4">
@@ -799,8 +808,12 @@
 
     </rw-room>
     <!--全局场景 end-->
-    <a-sphere visible="true" id="out1" position="0 30 0" radius="20" shadow material="shader:noise;color:#035DDA;weight:8"
-    ></a-sphere>
+    <a-torus visible="true" id="" mixin="ani" radius="16" position="0 0 0" id="range" material="shader:noise;color:#009688;weight:2;transparent:true;opacity:0.1"
+    ></a-torus>
+    <a-entity visible="true" id="out1" position="0 -30 0" id="range" entity-generator="mixin:ani random-3 yellow sphere; num: 500"
+              shadow
+    ></a-entity>
+    <a-text value="BORING BOX" position="-8.1 4.6 -31"  z-offset="4" shader="noise" width="27" height="15"></a-text>
     <a-node id="dummy"></a-node>
 </a-scene>
 </body>
