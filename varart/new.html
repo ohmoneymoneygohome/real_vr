@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>vr</title>
+    <script src="lib/jquery-3.3.1.js">
+
+    </script>
+    <script src="lib/aframe-master.min.js"></script>
+</head>
+<body>
+<a-scene>
+
+    <a-assets>
+        <video id="video1"  autoplay loop crossorigin="anonymous" playsinline webkit-playsinline>
+            <!-- MP4 video source. -->
+            <source type="video/mp4"
+                    src="assets/media/cube.mp4"/>
+        </video>
+        <video id="antarctica" autoplay loop="true" src="antarctica.mp4"> </video>
+    </a-assets>
+
+
+
+    <a-videosphere src="#video1" ></a-videosphere>
+
+    <!-- Defining the URL inline. Not recommended but more comfortable for web developers. -->
+
+</a-scene>
+
+</body>
+<script>
+    $("h1").append("<h2>world</h2>")
+</script>
+</html>

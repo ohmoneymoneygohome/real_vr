@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>art_park</title>
+    <meta name="description" content="Motion Capture Components – A-Frame">
+    <!--<script src="lib/aframe-master.min.js"></script>-->
+    <script src="https://aframe.io/releases/0.7.0/aframe.min.js"></script>
+    <!--<script src="js/components/enviorment.js"></script>-->
+    <script src="js/components/aframe-tooltip-component.js"></script>
+    <!--<script src="js/components/camera-position.js"></script>-->
+    <!--<script src="js/components/ground.js"></script>-->
+    <script src="js/components/link-controls.js"></script>
+    <script src="shaders/skyGradient.js"></script>
+    <script src="lib/jquery-3.3.1.js"></script>
+    <!--scene12-->
+    <script src="https://unpkg.com/aframe-event-set-component@3.0.x/dist/aframe-event-set-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-layout-component@4.1.0/dist/aframe-layout-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-animation-component@3.2.1/dist/aframe-animation-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-particle-system-component@1.0.x/dist/aframe-particle-system-component.min.js"></script>
+    <script src="https://unpkg.com/aframe-extras.ocean@%5E3.5.x/dist/aframe-extras.ocean.min.js"></script>
+    <script src="https://unpkg.com/aframe-gradient-sky@1.0.4/dist/gradientsky.min.js"></script>
+    <!--<script src="js/components/aframe-animation-component.min.js"></script>-->
+    <script src="js/components/aframe-curve-component.min.js"></script>
+    <script src="js/components/aframe-alongpath-component.js"></script>
+    <script src="js/components/aframe-room-component.js"></script>
+    <!--scene5-->
+    <script src="js/components/aframe-randomizer-components.js"></script>
+    <script src="js/components/aframe-look-at-component.js"></script>
+    <script src="js/components/aframe-mountain-component.js"></script>
+    <script src="js/components/noise.js"></script>
+    <script src="js/components/aframe-raytrace-component.min.js"></script>
+    <!--scene2-->
+    <script src="js/components/moon.js"></script>
+    <script src="js/components/earth.js"></script>
+
+</head>
+<body>
+<script id="blob-fs" type="x-shader/x-fragment">
+
+      precision mediump float;
+
+      uniform float time;
+      uniform vec3 localCameraPos;
+      varying vec3 localSurfacePos;
+
+      const float blobsize = 0.2;
+
+
+
+      float smoothBlend( float a, float b, float k ){
+          float h = clamp(0.5+0.5*(b-a)/k,0.0,1.0);
+          return mix(b,a,h) - k*h*(1.0-h);
+      }
+
+      void hardAdd(inout float curD, float newD){
+        curD = min(curD,newD);
+      }
+      void smoothAdd(inout float curD, float newD, float blendPower){
+          curD = smoothBlend( newD, curD, blendPower );
+      }
+
+
+      float obj_ball(vec3 p, vec3 center, float radius){
+          return length(p-center)-radius;
+      }
+
+      vec3 blobBallPos(float i){
+
+          float v = time/1000.0*2.0 + i*100.0;
+          return vec3(
+            sin( v + sin(v*0.8) + sin(v*0.2)*sin(v*2.1) )*blobsize,
+            sin( v + sin(v*0.6) + sin(v*0.4)*sin(v*2.2) )*blobsize,
+            sin( v + sin(v*0.4) + sin(v*0.6)*sin(v*2.3) )*blobsize
+          );
+
+      }
+
+      float room(vec3 p){
+
+        float distance = 9999.9;
+
+        hardAdd(distance, obj_ball(p, blobBallPos(0.0), blobsize) );
+        for(float i=1.0; i<8.0; i+=1.0){
+          smoothAdd(distance, obj_ball(p, blobBallPos(i), blobsize) , blobsize);
+        }
+
+        return distance;
+
+      }
+
+
+      void main() {
+
+
+        vec3 curCameraRayUnit = normalize(localSurfacePos - localCameraPos);
+
+
+        // zero optimization done to step size, max iterations, etc..!
+        const vec3 e=vec3(0.02,0,0);
+        const float maxd=40.0; //Max depth
+        vec3 c,p,N;
+        float sA,sP;
+
+        // march to bg
+        vec3 color=vec3(1.0,1.0,1.0);
+        float f=0.0;
+        float d=0.001;
+        vec3 surfaceColor;
+        for(int i=0;i<64;i++){
+          if ((abs(d) < .001) || (f > maxd)) break;
+          f+=d;
+          p=localCameraPos+curCameraRayUnit*f;
+          d = room(p);
+        }
+
+        float specA=1.0, specP=8.0;
+
+        if (f < maxd){
+
+          vec3 n = vec3(d-room(p-e.xyy),
+                  d-room(p-e.yxy),
+                  d-room(p-e.yyx));
+          N = normalize(n);
+
+          vec3 L = normalize(vec3(1.0,1.0,1.0)-p);
+
+          float diffuse=max(dot(N,L),0.0);
+          vec3 H = normalize(L-curCameraRayUnit);
+          float specular = max(dot(H,N),0.0);
+          color = (diffuse*0.8+0.2)*vec3(1.0,0,1.0) + pow(specular,specP)*specA;
+
+        } else {
+
+          discard;
+
+        }
+
+        gl_FragColor = vec4(color,1.0);
+
+      }
+
+
+
+
+</script>
+<script id="columns-fs" type="x-shader/x-fragment">
+
+      precision mediump float;
+
+      uniform float time;
+      uniform vec3 localCameraPos;
+      varying vec3 localSurfacePos;
+
+
+
+
+      float obj_box(vec3 p, vec3 center, vec3 size, float roundness){
+          vec3 d = abs(p-center)-size;
+          return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0)) - roundness;
+      }
+      float obj_cylinder(vec3 p, vec3 center, vec2 size, float roundness){
+          vec3 tp = p-center;
+          vec2 d = abs(vec2(length(tp.xz),tp.y)) - size;
+          return min(max(d.x,d.y)+roundness,0.0) + length(max(d,0.0))-roundness;
+      }
+      float obj_planeX(vec3 p, float planeX){
+          return p.x-planeX;
+      }
+      float obj_planeY(vec3 p, float planeY){
+          return p.y-planeY;
+      }
+      float obj_planeZ(vec3 p, float planeZ){
+          return p.z-planeZ;
+      }
+
+      float obj_cylForeverZ(vec2 p, float middleY, float radius){
+          return abs(length(vec2(p.x,p.y-middleY))) - radius;
+      }
+
+      float distSmooth( float a, float b, float k ){
+          float h = clamp(0.5+0.5*(b-a)/k,0.0,1.0);
+          return mix(b,a,h) - k*h*(1.0-h);
+      }
+
+      void hardAdd(inout float curD, inout int curMaterial, float newD, int newMaterial){
+          if (newD < curD) {
+              curD = newD;
+              curMaterial = newMaterial;
+          }
+      }
+      void hardSubtract(inout float curD, float newD) {
+          curD = max( -newD, curD );
+      }
+      void smoothAdd(inout float curD, float newD, float blendPower){//blend colors too?
+          curD = distSmooth( newD, curD, blendPower );
+      }
+      void smoothSubtract(inout float curD, float newD, float blendPower){
+          curD = -distSmooth( newD , -curD , blendPower );
+      }
+
+      const float cylMidZ = -1.5;
+
+
+
+
+      float fwdDist = time/1000.0;
+
+
+      float middleMod(float val,float modDist){
+          return mod(val+modDist*0.5,modDist)-modDist*0.5;
+      }
+
+      float room(vec3 p, out int material){
+
+          float distance = 9999.9;
+          material = 0;
+
+          const float pillarGapX = 2.5;
+          const float pillarGapZ = 0.5;
+
+          const float floorTileGap = 0.5;
+          const float floorTileGrout = 0.07;
+
+          const float ceilY = 9.0;
+
+          const float mirrorY = 0.5;
+
+          vec3 pillarP = vec3(mod(p.x,pillarGapX*2.0),-abs(p.y-mirrorY)+mirrorY,mod(p.z,pillarGapZ*2.0));
+
+          // ceiling flat
+          hardAdd(distance,material,
+                  -obj_planeY(p ,ceilY),
+                  3);
+
+          // ceiling groove
+          hardSubtract(distance,
+                       obj_cylForeverZ(vec2(middleMod(p.x,5.0),p.y),ceilY,2.3));
+
+          // base
+          hardAdd(distance,material,
+                  obj_box(pillarP,vec3(pillarGapX,-1.4,pillarGapZ),vec3(0.4,0.15,0.4),0.0),
+                  1);
+
+          // base blend
+          smoothAdd(distance,
+                    obj_cylinder(pillarP,vec3(pillarGapX,-1.15,pillarGapZ),vec2(0.3,0.1),0.0),
+                    0.11);
+
+          // floor
+          hardAdd(distance,material,
+                  obj_box(vec3(mod(p.x,floorTileGap*2.0),p.y,mod(p.z,floorTileGap*2.0)),vec3(floorTileGap,-1.5-floorTileGap,floorTileGap),vec3(floorTileGap-floorTileGrout),floorTileGrout),
+                  2);
+
+          //column
+          hardAdd(distance,material,
+                  obj_cylinder(pillarP,vec3(pillarGapX,mirrorY,pillarGapZ),vec2(0.25,2.0),0.0),
+                  1);
+
+          return distance;
+
+      }
+
+
+      void main(){
+
+        const vec3 e=vec3(0.00007,0,0);
+        const float maxd=40.0; //Max depth
+        vec3 p;
+
+
+        vec3 curCameraRayUnit = normalize(localSurfacePos - localCameraPos);
+
+
+
+        float f=0.0;
+        float d=0.01;
+        int surfaceMaterial = 0;
+        for(int i=0;i<96;i++){
+            if ((abs(d) < .001) || (f > maxd)) break;
+            f+=d;
+            p=vec3(0,0,-fwdDist)+localCameraPos+curCameraRayUnit*f;
+            d = room(p,surfaceMaterial);
+        }
+
+
+        vec3 color;
+        int dummyMaterial;
+
+        if (f < maxd){
+
+            vec3 surfaceColor;
+            float specA, specP;
+            float difP = 1.0;
+            vec3 normalCheat = vec3(0.0,0.0,0.0);//generally not advisable in stereo, but it's used very shallowly here
+
+            if (surfaceMaterial == 1){
+
+                vec3 marbleP = p;
+
+                marbleP.x += sin(p.y*20.0)*0.12;
+                marbleP.z += sin(p.y*22.0)*0.1;
+                marbleP.y += sin(p.x*25.0)*0.13;
+                marbleP.y += sin(p.z*23.0)*0.14;
+
+                marbleP.y += sin(p.x*1.3)*0.5;
+                marbleP.y += sin(p.z*1.5)*0.6;
+
+                marbleP.x += sin(p.y*150.0)*0.011;
+                marbleP.z += sin(p.y*162.0)*0.013;
+                marbleP.y += sin(p.x*145.0)*0.012;
+                marbleP.y += sin(p.z*153.0)*0.015;
+
+                marbleP.x *= 20.0;
+                marbleP.z *= 20.0;
+                marbleP.y *= 10.0;
+
+                float marbleAmtA = abs(sin(marbleP.x)+sin(marbleP.y)+sin(marbleP.z))/3.0;
+                marbleAmtA = pow(1.0-marbleAmtA,5.0);
+
+                marbleP = p;
+
+                marbleP.x += sin(p.y*21.0)*0.12;
+                marbleP.z += sin(p.y*23.0)*0.1;
+                marbleP.y += sin(p.x*22.0)*0.13;
+                marbleP.y += sin(p.z*24.0)*0.14;
+
+                marbleP.y += sin(p.x*1.2)*0.5;
+                marbleP.y += sin(p.z*1.4)*0.6;
+
+                marbleP.x += sin(p.y*150.0)*0.011;
+                marbleP.z += sin(p.y*162.0)*0.013;
+                marbleP.y += sin(p.x*145.0)*0.012;
+                marbleP.y += sin(p.z*153.0)*0.015;
+
+                marbleP.x *= 22.0;
+                marbleP.z *= 23.0;
+                marbleP.y *= 11.0;
+
+                float marbleAmtB = abs(sin(marbleP.x)+sin(marbleP.y)+sin(marbleP.z))/3.0;
+                marbleAmtB = pow(1.0-marbleAmtB,9.0);
+                marbleAmtB = 1.0-(1.0-marbleAmtB*0.3);
+
+                float marbleAmt = marbleAmtA + marbleAmtB;
+                marbleAmt = clamp(marbleAmt,0.0,1.0);
+
+                surfaceColor = mix(vec3(0.0,0.8,0.5),vec3(0.70),marbleAmt);
+                specA = mix(1.0,0.8,marbleAmt);
+                specP = mix(16.0,28.0,marbleAmt);
+
+            }
+            if (surfaceMaterial == 2) {
+
+                vec3 marbleP = p;
+                vec3 intensityP = p;
+
+                float tileSize = 1.0;
+                if ( ceil(mod(p.x,tileSize*2.0)/tileSize) == ceil(mod(p.z,tileSize*2.0)/tileSize) ) {
+                    surfaceColor = vec3(0.45,0.0,0.0);
+                    marbleP.x *= -1.0;
+                    intensityP.x *= -1.0;
+                    marbleP.z += 1.0;
+                    intensityP.z += 1.0;
+                } else {
+                    surfaceColor = vec3(0.75,0.75,0.6);
+                }
+                specA = 1.0;
+                specP = 16.0;
+
+
+
+
+                marbleP.x += marbleP.z*0.5;
+                marbleP.z += marbleP.x*0.4;
+
+                marbleP.x += sin(marbleP.x*  3.8)*0.125;
+                marbleP.z += sin(marbleP.z*  3.6)*0.135;
+
+                marbleP.x += sin(marbleP.z* 20.0)*0.025;
+                marbleP.z += sin(marbleP.x* 25.0)*0.025;
+
+                marbleP.x += sin(marbleP.z* 40.0)*0.025;
+                marbleP.z += sin(marbleP.x* 45.0)*0.025;
+
+                marbleP.x += sin(marbleP.z*150.0)*0.01;
+                marbleP.z += sin(marbleP.x*160.0)*0.011;
+
+                marbleP *= 36.0;
+
+
+
+
+                intensityP.z -= 10000.0;
+
+                intensityP.x += intensityP.z*0.3;
+                intensityP.z += intensityP.x*0.1;
+
+                intensityP.x += sin(intensityP.x*1.2)*0.36;
+                intensityP.z += sin(intensityP.z*1.3)*0.21;
+
+                intensityP.x += sin(intensityP.z*2.2)*0.8;
+                intensityP.z += sin(intensityP.x*2.3)*0.9;
+
+                intensityP *= 6.0;
+
+
+                float intensityAmt = (sin(intensityP.x)*sin(intensityP.z))*0.5+0.5;
+                intensityAmt = 1.0-pow(1.0-intensityAmt,0.5);
+
+                float marbleAmt = (sin(marbleP.x)*sin(marbleP.z))*0.5+0.5;
+
+
+                float marbleGrainAmt = marbleAmt;
+                marbleGrainAmt = 1.0-((1.0-pow(marbleGrainAmt,1.5))*(1.0-intensityAmt)*1.125);
+                marbleGrainAmt = 1.0-pow(1.0-marbleGrainAmt,5.0);
+
+                surfaceColor *= marbleGrainAmt;
+                specA *= marbleGrainAmt;
+
+
+
+                float marbleGashAmt = marbleAmt;
+                marbleGashAmt *= 0.5 + 18.0*intensityAmt;
+                marbleGashAmt += pow(intensityAmt,2.5)*18.0;
+                marbleGashAmt = clamp(marbleGashAmt,0.0,1.0);
+
+                float marbleGoldAmt = pow(marbleGashAmt,1.0);
+                float marbleShadeAmt = pow(marbleGashAmt,16.0);
+
+                surfaceColor *= marbleShadeAmt;
+                specA *= marbleShadeAmt;
+
+                vec3 myNormalCheat = vec3(
+                    sin( p.x*200.0 + sin(p.z*100.0)*0.5 + sin(p.z*17.0)*(5.0+sin(p.x*20.0)*4.0) )*0.000015,
+                    0.0,
+                    0.0
+                );
+
+                surfaceColor = mix(vec3(1.0,0.9,0.0),surfaceColor,marbleGoldAmt);
+                specP = mix(256.0,specP,marbleGoldAmt);
+                specA = mix(1.0,specA,marbleGoldAmt);
+                difP = mix(6.0,difP,marbleGoldAmt);
+                normalCheat = mix(myNormalCheat,normalCheat,marbleGoldAmt);
+
+            }
+            if (surfaceMaterial == 3){
+
+                float splinters =
+                    pow(abs( ( sin(p.x*100.0)*0.5 + sin(p.y*100.0)*0.5 ) ), 0.1)
+                    *
+                    (sin(p.z*2.0+sin(p.x*10.0)*4.0+sin(p.x*27.0)*3.0)*0.5+0.5);
+
+                float waves = sin(
+                    p.z*10.0 +
+                    sin(p.z*3.0 + sin(p.x*11.0)*0.5 )*1.0 +
+                    sin((p.z + sin(p.z*0.5)*5.5)*0.15 + sin(p.x*0.8)*2.0) * 14.0 +
+                    pow(abs(sin((p.x*1.0 + sin(p.x*3.0)*0.5)*25.0)),0.5) * 0.5
+                );
+
+                float grain = splinters * 0.3 + waves * 0.7;
+                grain = pow(grain*0.5+0.5,0.25);
+
+                surfaceColor = mix(vec3(0.2,0.1,0.1),vec3(0.4,0.2,0.05),grain);
+                specP = mix(30.0,20.0,grain);
+                specA = grain;
+
+            }
+
+            vec3 n = vec3(d-room(p-e.xyy,dummyMaterial),
+                          d-room(p-e.yxy,dummyMaterial),
+                          d-room(p-e.yyx,dummyMaterial));
+            n += normalCheat;
+            vec3 N = normalize(n);
+
+            vec3 pointLightPos = vec3(0.0,2.0,-4.5-fwdDist);
+            vec3 L = normalize(pointLightPos-p);
+
+            float diffuse=max(dot(N,L),0.0);
+            vec3 H = normalize(L-curCameraRayUnit);
+            float specular = max(dot(H,N),0.0);
+            color = pow(diffuse,difP)*surfaceColor + pow(specular,specP)*specA;
+
+            float lightDist = (length(pointLightPos-p)) * 0.04;
+            lightDist = max(0.0,min(1.0,lightDist));
+            color *= pow(1.0-lightDist, 2.0);
+
+        } else {
+
+            color = vec3(0.0,0.0,0.0);
+
+        }
+
+
+
+        gl_FragColor = vec4(color,1.0);
+
+      }
+
+
+
+
+</script>
+<script id="smoke-fs" type="x-shader/x-fragment">
+
+      precision mediump float;
+
+      uniform float time;
+      uniform vec3 localCameraPos;
+      varying vec3 localSurfacePos;
+
+      const float pi2 = 3.14152*2.0;
+
+      vec4 field(vec3 p){
+
+        vec3 morphedP = vec3(
+            p.x*20.0 + time/200.0
+            + sin(p.z*5.0)*(1.0+sin(time/1100.0)*0.5)*10.0
+            + sin(p.y*4.0)*(1.0+sin(time/1300.0)*0.5)*10.0
+          ,
+            p.y*20.0 + time/300.0
+            + sin(p.z*5.0)*(1.0+sin(time/1000.0)*0.5)*10.0
+            + sin(p.x*4.0)*(1.0+sin(time/1200.0)*0.5)*10.0
+          ,
+            p.z*20.0 + time/400.0
+            + sin(p.x*5.0)*(1.0+sin(time/1400.0)*0.5)*10.0
+            + sin(p.y*4.0)*(1.0+sin(time/1500.0)*0.5)*10.0
+        );
+
+        float alpha = (sin(morphedP.x)*0.5+0.5) * (sin(morphedP.y)*0.5+0.5) * (sin(morphedP.z)*0.5+0.5);
+        vec3 color = vec3(
+          sin(morphedP.x),
+          sin(morphedP.y),
+          sin(morphedP.z)
+        );
+        color = (color*0.5+0.5)*alpha;
+
+        return vec4(color,alpha);
+      }
+
+
+      float fadeCurve(float x){
+        return 1.0-pow(abs(x)/0.5,2.0);
+      }
+
+      void alphaBlend(inout vec4 baseCol, vec4 newCol){
+        baseCol = baseCol*(1.0-newCol.a) + newCol;
+      }
+
+      float noise(vec3 p){
+        return sin(
+          p.x*12345678.0 + p.y*45678912.0 + p.z*78912345.0 +
+          sin(p.x+p.y+time/1000.0)*14725836.0 + sin(p.y+p.z+time/1000.0)*25836914.0 + sin(p.z+p.x+time/1000.0)*36914725.0
+        );
+      }
+
+      void main(){
+
+        vec3 rayPos = localSurfacePos;
+        vec3 rayDir = normalize(localCameraPos-localSurfacePos);//BACKWARDS because we're painting inside & doing painter's algorithm!
+        vec4 fog = vec4(0.0);
+        for(int i=0; i<200; i++){
+          rayPos += rayDir*0.01;
+          if (max(max(abs(rayPos.x),abs(rayPos.y)),abs(rayPos.z)) > 0.51) break;
+          float squareFade = fadeCurve(rayPos.x)*fadeCurve(rayPos.y)*fadeCurve(rayPos.z);
+          vec4 fogSamp = field(rayPos);//+rayDir*0.005*noise(rayPos));
+          alphaBlend(fog,fogSamp*squareFade);
+        }
+
+        gl_FragColor = fog;
+
+      }
+
+
+
+
+</script>
+<!--html传统标签 begin-->
+<!--音乐控制 begin-->
+<div id="bgm_source">
+    <audio id="bgm" loop="loop">
+        <source src="assets/media/bgm.mp3" type="audio/mpeg"/>
+    </audio>
+
+    <audio id="bgm_1" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_2" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_3" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_4" loop="loop">
+        <source src="assets/media/scene4_Skuggamyndir.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_5" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_6" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_7" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_8" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_9" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_10" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_11" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_12" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_x" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+    <audio id="bgm_y" loop="loop">
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
+    </audio>
+</div>
+<!--音乐控制 end-->
+<!--html传统标签 end-->
+<a-scene raycaster="far: 100; objects: [link];" cursor="rayOrigin: mouse" inspector="https://cdn.jsdelivr.net/gh/aframevr/aframe-inspector@master/dist/aframe-inspector.min.js">
+    <!--资源列表 begin-->
+    <a-assets>
+        <video id="video1" style="display:none" autoplay loop crossorigin="anonymous" playsinline webkit-playsinline>
+            <!-- MP4 video source. -->
+            <source type="video/mp4"
+                    src="assets/media/cube.mp4"/>
+        </video>
+        <video id="video2" style="display:none" autoplay loop crossorigin="anonymous" playsinline webkit-playsinline>
+            <!-- MP4 video source. -->
+            <source type="video/mp4"
+                    src="assets/media/test.mp4"/>
+        </video>
+        <!--<audio id="song" src="assets/media/bgm.mp3" autoplay loop></audio>-->
+        <!--展厅主图-->
+        <img id="scene1" src="assets/img/white.jpg">
+        <img id="scene2" src="assets/img/moon.jpg">
+        <img id="scene3" src="assets/img/star3.jpg">
+        <img id="scene4" src="assets/img/painting/famous.jpg">
+        <img id="scene5" src="assets/img/star5.jpg">
+        <img id="scene6" src="assets/img/star6.jpg">
+        <img id="scene7" src="assets/img/star7.jpg">
+        <img id="scene8" src="assets/img/star8.jpg">
+        <img id="scene9" src="assets/img/star9.jpg">
+        <img id="scene10" src="assets/img/star10.jpg">
+        <img id="scene11" src="assets/img/star11.jpg">
+        <img id="scene12" src="assets/img/star12.jpg">
+        <img id="earth" src="assets/img/ground.jpg">
+        <img id="moon" src="assets/img/moon.jpg">
+        <!--作品图-->
+        <img id="youhua1" src="assets/img/painting/youhua1.jpg">
+        <img id="youhua2" src="assets/img/painting/youhua2.jpg">
+        <img id="youhua3" src="assets/img/painting/youhua3.jpg">
+        <img id="youhua4" src="assets/img/painting/youhua4.jpg">
+        <img id="frame1" src="assets/img/painting/frame1.jpg">
+        <img id="frame2" src="assets/img/painting/frame2.jpg">
+        <img id="frame3" src="assets/img/painting/frame3.jpg">
+        <img id="frame4" src="assets/img/painting/frame4.jpg">
+        <img id="frame5" src="assets/img/painting/frame5.jpg">
+        <img id="door_texture" src="assets/room/door.jpg">
+        <!--<audio id="neigh" src="assets/media/bgm.mp3"></audio>-->
+        <a-asset-item id="dawei-obj" src="assets/models/crate/file.obj"></a-asset-item>
+        <a-asset-item id="frame" src="assets/models/frame.glb"></a-asset-item>
+        <a-asset-item id="MSL_clean" src="assets/models/MSL_clean.obj"></a-asset-item>
+        <a-asset-item id="moon_surface" src="assets/models/moon_surface.glb"></a-asset-item>
+        <a-asset-item id="handle" src="assets/room/handle.glb"></a-asset-item>
+        <a-asset-item id="real" src="assets/room/real.glb"></a-asset-item>
+        <!--公共属性-->
+        <a-mixin id="door" color="white" radius="4"
+                 animation="property: position; easing: easeInOutQuad; dir: alternate; dur: 1000; to: 5 8.9 -8.66; loop: true"
+                 animation__rotation="property: rotation;dir: alternate; dur: 10000; to: 360 0 0; loop: true;"
+        >
+        </a-mixin>
+        <a-mixin id="random" color="yellow"
+                 random-color random-position random-rotation scale="8 8 8"
+                 animation="property: rotation; easing: easeInOutQuad; dir: alternate; dur: 10000; to: 10 10 10; loop: true">
+        </a-mixin>
+        <a-mixin id="scale" scale="1 1 1">
+        </a-mixin>
+        <img id="testTex" src="assets/img/painting/frame5.jpg">
+        <a-mixin id="floorMat" material="color:#BBB"></a-mixin>
+        <img id="groundTexture" src="https://cdn.aframe.io/a-painter/images/floor.jpg">
+        <img id="skyTexture" src="https://cdn.aframe.io/a-painter/images/sky.jpg">
+        <!--小飞机 start-->
+        <a-mixin id="flap" animation="property: rotation; dir: alternate; loop: true"></a-mixin>
+        <a-mixin id="rotate" animation="property: rotation; loop: true"></a-mixin>
+        <a-mixin id="wing" geometry="primitive: box; depth: .005; height: 1; width: 0.5"
+                 material="color: #FAFAFA" rotation="0 0 0"
+                 pivot="0.125 0 0" scale="0.5 0.625 0.5"></a-mixin>
+        <a-mixin id="wing2" color="#F88"></a-mixin>
+        <!--小飞机 end-->
+    </a-assets>
+    <!--资源列表 begin-->
+    <!--轨迹控制 begin-->
+    <a-curve id="camera_curve" closed="true">
+        <a-curve-point id="point1" position="-6.4 2.1 -35.3"></a-curve-point>
+        <a-curve-point id="point1" position="-5 1.6 -33"></a-curve-point>
+        <a-curve-point id="point2" position="-5 1.6 -30"></a-curve-point>
+        <!--<a-curve-point id="point3" position="0 1.6 0" geometry="primitive: sphere; radius:0.1;"></a-curve-point>-->
+    </a-curve>
+    <a-curve id="airplane_curve" closed="true">
+        <a-curve-point id="point1" position="-5 2.3 -35" ></a-curve-point>
+        <a-curve-point id="point2" position="-5 2.3 -30" ></a-curve-point>
+        <a-curve-point id="point3" position="10 2.3 0" ></a-curve-point>
+    </a-curve>
+    <!--轨迹控制 end-->
+    <!--视角控制 begin-->
+    <a-entity id="cameraWrappers1" position="-5 1.6 -35" rotation="0 0 0">
+        <a-camera id="cameraPositions1" position="0 -1.6 0">
+            <a-cursor id="cursor" far="20" color="#4CC3D9" fuse="true" timeout="10" opacity="1"></a-cursor>
+        </a-camera>
+    </a-entity>
+    <!--视角控制 end-->
+    <!--全局场景 start-->
+    <a-entity position="-3 0 -35" height="4">
+        <a-entity position="-2 0 -0.8">
+            <a-entity position="0 0 -0.8">
+                <a-box position="0 1.6 0" scale="0.5 0.5 0.5" color="yellow"
+                       raytrace="shader:#blob-fs; backside:true;"></a-box>
+                <a-cylinder position="0 0.6 0" radius="0.03" height="1.2" color="#FAFAFA" segments-height="1"
+                            segments-radial="8"></a-cylinder>
+                <a-cylinder position="0 1.28 0" radius="0.3" height="0.03" color="#FAFAFA" segments-height="1"
+                            segments-radial="48"></a-cylinder>
+            </a-entity>
+
+            <a-entity position="1.4 0 0.5" rotation="0 -90 0">
+                <a-torus position="0 1.6 0" color="#FAFAFA" radius="0.5" radius-tubular="0.005" segments-tubular="64"
+                         segments-radial="6">
+                    <a-circle radius="0.5" segments="16" raytrace="shader:#columns-fs"></a-circle>
+                </a-torus>
+                <a-cylinder position="0 0.55 0" radius="0.01" height="1.1" color="#FAFAFA" segments-height="1"
+                            segments-radial="6"></a-cylinder>
+            </a-entity>
+
+            <a-entity position="-1.4 0 0.5" rotation="0 90 0">
+                <a-box position="0 1.60 0" scale="0.5 0.5 0.5" come-in-here=""
+                       raytrace="shader:#smoke-fs; transparent:true; backside:true;"></a-box>
+                <a-box position="0 0.6 0" scale="0.5 1.2 0.5" color="#FAFAFA"></a-box>
+            </a-entity>
+        </a-entity>
+    </a-entity>
+    <a-entity id="fly" mixin="rotate" position="-6.5 1.6 -39" fly-track-control=""
+              animation="to: 0 360 0; dur: 8000; easing: linear" visible="">
+        <a-entity id="fly_inner" rotation="50 10 0" position="0 0 0" radius="0.2">
+            <a-entity rotation="-45 0 90">
+                <a-entity class="fly_aside" mixin="wing flap" animation="to: 0 120 0"></a-entity>
+            </a-entity>
+            <a-entity rotation="-45 0 90">
+                <a-entity class="fly_aside" mixin="wing flag" animation="to: 0 -120 0"></a-entity>
+            </a-entity>
+        </a-entity>
+    </a-entity>
+    <a-entity position="12.5 0 -2.5"></a-entity>
+    <rw-room position="-7.5 0 -32.5" width="5" length="5" height="4" light="type:point;intensity:0.2">
+
+        <rw-wall material="color:#F88">
+            <rw-doorhole id="holeA">
+            </rw-doorhole>
+        </rw-wall>
+        <rw-wall material="color:#F88">
+            <a-light color="#ccc" position="1.5 2.9 2" angle="85" distance="3" target="#room_paint1" decay="0.5"
+                     penumbra="0.1" type="spot" geometry="primitive: cylinder; height: 0.11; radius: 0.04"
+                     material="color:black;shader:standard;rotation:0 -30 0"></a-light>
+            <a-light color="#ccc" position="3.5 2.9 2" angle="85" distance="3" target="#room_paint2" decay="0.5"
+                     penumbra="0.1" type="spot" geometry="primitive: cylinder; height: 0.11; radius: 0.04"
+                     material="color:black;shader:standard;rotation:0 -30 0"></a-light>
+            <a-gltf-model id="room_paint1" src="#frame" position="1.5 1.7 -0.7" scale="3 3 3" material="shader:flat">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+            </a-gltf-model>
+            <a-gltf-model id="room_paint2" src="#frame" position="3.5 1.7 -0.7" scale="3 3 3" material="shader:flat">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+            </a-gltf-model>
+        </rw-wall>
+        <rw-wall material="color:#F88">
+            <rw-doorhole id="frontInner">
+                <a-box id="room_door" open-the-door="" pivot="0.75 0 0"
+                       width="1.5" depth="0.1" height="2.5" position="0 1.25 -0.1" material="src:#door_texture">
+                    <a-gltf-model id="room_handle" src="#handle" position="-0.5 0 0.03" scale="0.3 0.3 0.3">
+                    </a-gltf-model>
+                </a-box>
+            </rw-doorhole>
+        </rw-wall>
+        <rw-wall material="color:#F88">
+            <a-light color="#ccc" position="2.5 3.5 1" angle="-85" distance="4" target="#room_paint3" decay="0.45"
+                     penumbra="0.2" type="spot" geometry="primitive: cylinder; height: 0.11; radius: 0.04"
+                     material="color:black;shader:standard;rotation:0 210 0"></a-light>
+            <a-gltf-model id="room_paint3" src="#frame" position="2.5 1.7 -1" scale="4.5 4.5 4.5"
+                          material="shader:flat">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+            </a-gltf-model>
+        </rw-wall>
+        <rw-floor mixin="floorMat"></rw-floor>
+        <rw-ceiling material="color:#AAA"></rw-ceiling>
+    </rw-room>
+    <rw-doorlink from="#holeA" to="#holeB" width="2" height="3" position="-4.5 0 -30">
+        <rw-floor mixin="floorMat"></rw-floor>
+        <rw-ceiling material="color:#BB6"></rw-ceiling>
+        <rw-sides material="color:#BB6"></rw-sides>
+    </rw-doorlink>
+    <rw-room position="-5 0 -32.7" height="4">
+
+        <rw-wall position="-2 0 0" material="color:#26C6DA"></rw-wall>
+        <rw-wall position=" 2 0 0" material="color:#26C6DA;">
+            <rw-doorhole id="holeB"></rw-doorhole>
+        </rw-wall>
+        <rw-wall position=" 2 0 -5" material="color:#26C6DA">
+            <rw-doorhole id="holeC"></rw-doorhole>
+            <rw-doorlink from="#holeC" to="#holeD" position="4 0 0"></rw-doorlink>
+        </rw-wall>
+        <rw-wall position="-2 0 -5" material="color:#26C6DA">
+            <a-box position="0.5 1.4 0" scale="0.5 0.5 0.2"></a-box>
+            <a-box position="1.5 1.7 0" scale="0.5 0.5 0.2"></a-box>
+            <a-box position="2.5 1.4 0" scale="0.5 0.5 0.2"></a-box>
+        </rw-wall>
+
+        <rw-floor mixin="floorMat"></rw-floor>
+        <rw-ceiling material="color:#99A" light="type:point;intensity:0.4"></rw-ceiling>
+
+    </rw-room>
+    <rw-room position="-3 0 -35" height="4">
+
+        <rw-wall position="0 0 0" material="color:#800"></rw-wall>
+        <rw-wall position="0 0 2" material="color:#800">
+            <rw-doorhole id="holeD"></rw-doorhole>
+        </rw-wall>
+        <rw-wall position="1 0 2" material="color:#800"></rw-wall>
+        <rw-wall position="1 0 0" material="color:#800"></rw-wall>
+
+        <rw-floor mixin="floorMat"></rw-floor>
+        <rw-ceiling material="color:#99A"></rw-ceiling>
+
+    </rw-room>
+    <rw-room position="-5 0 -30" outside="true" material="color:#877" height="4">
+
+        <rw-wall position="-3 0 -8" height="4"></rw-wall>
+        <rw-wall position=" 4 0 -8" height="4"></rw-wall>
+        <rw-wall position=" 4 0  3" height="4"></rw-wall>
+        <rw-wall position="-3 0  3" height="4">
+            <rw-doorhole id="frontOuter"></rw-doorhole>
+            <rw-doorlink from="#frontInner" to="#frontOuter" material="color:#778" position="3 0 0" width="1.5"
+                         depth="0.2" height="2.5">
+                <rw-floor></rw-floor>
+                <rw-ceiling></rw-ceiling>
+                <rw-sides></rw-sides>
+            </rw-doorlink>
+        </rw-wall>
+
+    </rw-room>
+    <!--全局场景 end-->
+    <!--主场景-大厅 ------------ begin-->
+    <a-entity id="sky" geometry="primitive: sphere; radius: 65;"
+              material="shader: skyGradient; colorTop: #353449; colorBottom: #BC483E; side: back">
+        <a-sphere visible="true" id="entry1" position="10 5 0" radius="2" src="#scene1" shadow
+                  change-color-on-hover="color: blue;"></a-sphere>
+        <a-sphere visible="true" id="entry2" position="-10 5.3 0" radius="2" src="#scene2" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry3" position="0 5.6 10" radius="2" src="#scene3" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry4" position="0 5.9 -10" radius="2" src="#scene4" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry5" position="-5 6.2 8.66" radius="2" src="#scene5" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry6" position="-8.66 6.5 5" radius="2" src="#scene6" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry7" position="-8.66 6.8 -5" radius="2" src="#scene7" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry8" position="-5 7.1 -8.66" radius="2" src="#scene8" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry9" position="8.66 7.4 5" radius="2" src="#scene9" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry10" position="8.66 7.7 -5" radius="2" src="#scene10" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry11" position="5 8 8.66" radius="2" src="#scene11" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-sphere visible="true" id="entry12" position="5 8.3 -8.66" radius="2" src="#scene12" shadow
+                  change-color-on-hover="color: blue"></a-sphere>
+        <a-obj-model src="#dawei-obj" position="0 5 0" rotation="0 0 0" scale="2 2 2" color="#1a3b32"
+                     change-color-on-hover="color:white"
+        ></a-obj-model>
+        <a-gltf-model id="logo" src="#real" position="0 2 5" radius="8">
+        </a-gltf-model>
+        <a-sphere visible="true" id="out1" position="0 15 0" radius="5" shadow material="shader:noise;color:#035DDA;weight:3"
+        ></a-sphere>
+        <a-entity ground='url: assets/models/ground.json'></a-entity>
+        <!--<a-entity ground='url: https://cdn.aframe.io/link-traversal/models/groundSunrise.json'></a-entity>-->
+    </a-entity>
+    <!--主场景-大厅 ------------ end-->
+    <!--展厅1 ------------ begin-->
+    <a-entity class="gallery" id="gallery1" position="0 100 100" geometry="primitive: sphere; radius:50;"
+              material="shader:standard; src:#scene1; side: back">
+        <a-tetrahedron color="white" position="5 8.3 -8.66" radius="4">
+        </a-tetrahedron>
+        <!--<a-entity id="rain" particle-system="preset: rain; color: #24CAFF; particleCount: 5000"></a-entity>-->
+
+        <a-entity id="sphere" geometry="primitive: sphere"
+                  material="color: #EFEFEF; shader: flat"
+                  position="0 0.15 -5"
+                  light="type: point; intensity: 1"
+                  animation="property: position; easing: easeInOutQuad; dir: alternate; dur: 1000; to: 0 -0.10 -5; loop: true"></a-entity>
+        <a-image src="#youhua1" scale="3 3 3" position="0.015 0.068 -9.542" rotation="10 0 0"
+                 animation="property: position; easing: easeInOutQuad; dir: alternate; dur: 1000; to: 0.025 0.018 -9.542; loop: true"></a-image>
+        <a-image src="#youhua2" scale="3 3 3" position="-1.691 0.326 0.3" rotation="60 0 0"
+                 animation="property: position; easing: easeInOutQuad; dir: alternate; dur: 1000; to: -1.681 0.28 0.3; loop: true"></a-image>
+        <a-image src="#youhua3" scale="3 3 3" position="4.57 0.079 -5.2" rotation="98 20 0"
+                 animation="property: position; easing: easeInOutQuad; dir: alternate; dur: 1000; to: 4.37 0.059 -5.2; loop: true"></a-image>
+        <a-image src="#youhua4" scale="3 3 3" position="1.424 0.195 -0.137" rotation="96 0 0"
+                 animation="property: position; easing: easeInOutQuad; dir: alternate; dur: 1000; to: 1.414 0.155 -0.137; loop: true"></a-image>
+        <a-entity id="ocean" ocean="density: 20; width: 50; depth: 50; speed: 4"
+                  material="color: #9CE3F9; opacity: 0.75; metalness: 0; roughness: 1"
+                  rotation="-90 0 0"></a-entity>
+
+    </a-entity>
+    <!--展厅1 ------------ end-->
+    <!--展厅2 ------------ begin-->
+    <a-entity class="gallery" id="gallery2" position="0 200 100" material="shader: flat; side: back;color: #000000"
+              geometry="primitive: sphere; radius:50;"
+              material="shader: flat;  side: back">
+        <a-tetrahedron color="white" position="5 8.3 -8.66" radius="4">
+
+        </a-tetrahedron>
+        <a-entity earth
+                  geometry="primitive: sphere; radius: 6"
+                  position="0 0 0"
+                  material="shader: standard; src: #earth"
+        ></a-entity>
+        <a-entity moon
+                  geometry="primitive: sphere; radius: 1.5"
+                  material="shader: standard; src: #moon"
+        ></a-entity>
+    </a-entity>
+    <!--展厅2 ------------ end-->
+    <!--展厅3 ------------ begin-->
+    <a-entity class="gallery" id="gallery3" position="0 300 100" material="shader: noise; side: back;color: #000000"
+              geometry="primitive: sphere; radius:50;"
+    >
+        <a-tetrahedron color="white" position="5 8.3 -8.66" radius="4">
+
+        </a-tetrahedron>
+        <!--<a-entity-->
+        <!--environment="preset:  forest;  groundColor:  #578b1d;    fog:  0.8;  ground:  noise;   groundColor2:  #578b1d;  dressing:  trees;  dressingAmount:  500;  dressingColor:  #578b1d;  gridColor:  #578b1d"-->
+        <!--geometry="primitive: sphere; radius:50;"-->
+        <!--material="shader: flat; side: back">-->
+
+        <!--</a-entity>-->
+    </a-entity>
+    <!--展厅3 ------------ end-->
+    <!--展厅4 ------------ begin-->
+    <a-entity class="gallery" id="gallery4" position="0 400 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat; src:#scene4; side: back" draw-a-line=""
+              animation="property: rotation; easing: linear; dir: alternate-reverse; dur: 80000; to: 0 360 0; loop: true">
+
+
+        <a-tetrahedron mixin="door" position="0 8 0"
+                       animation="property: rotation; dir: alternate-reverse; dur: 8000; to: 0 -360 360; loop: true">
+
+        </a-tetrahedron>
+
+    </a-entity>
+    <!--展厅4 ------------ end-->
+    <!--展厅5 ------------ begin-->
+    <a-entity class="gallery" id="gallery5" position="0 500 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat; src:#scene5; side: back">
+        <a-tetrahedron mixin="door" color="white" position="5 8.3 -8.66" radius="4">
+        </a-tetrahedron>
+        <a-entity id="look-here" position="0 3 0"></a-entity>
+        <a-entity radius="5" position="0 6.6 0">
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+            <a-gltf-model src="#frame" show-a-paint-on-hover="paint: paint1;" mixin="random">
+                <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="false"></a-image>
+            </a-gltf-model>
+        </a-entity>
+    </a-entity>
+    <!--展厅5 ------------ end-->
+    <!--展厅6 ------------ begin-->
+    <a-entity class="gallery" id="gallery6" position="0 600 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat;color:white; side: back">
+        <a-tetrahedron mixin="door" color="white" position="5 8.3 -8.66" radius="4">
+        </a-tetrahedron>
+        <a-curve id="circle1" closed="true">
+            <a-curve-point id="point1" position="0 600 84"></a-curve-point>
+            <a-curve-point id="point2" position="-2 600 88"></a-curve-point>
+            <a-curve-point id="point3" position="2 600 96"></a-curve-point>
+            <a-curve-point id="point0" position="0 600 100"></a-curve-point>
+            <a-curve-point id="point4" position="-2 600 104"></a-curve-point>
+            <a-curve-point id="point5" position="2 600 112"></a-curve-point>
+            <a-curve-point id="point6" position="0 600 116"></a-curve-point>
+        </a-curve>
+        <a-curve id="circle2" closed="true">
+            <a-curve-point id="point7" position="0 600 100"></a-curve-point>
+        </a-curve>
+        <a-draw-curve curveref="#circle1" material="shader: line; color: blue;"></a-draw-curve>
+        <a-box color="#39BB82"
+               width="15" height="6" depth="3"
+               position="0 0 -16"
+               static-body></a-box>
+        <a-box color="white"
+               width="15" height="6" depth="3"
+               position="0 0 16"
+               static-body></a-box>
+        <a-gltf-model src="#frame" position="3 0 12" scale="3 3 3" stand-in-front-of="dir:forward">
+            <a-image src="#frame1" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+        </a-gltf-model>
+        <a-gltf-model src="#frame" position="-3 0 4" scale="3 3 3" stand-in-front-of="dir:forward">
+            <a-image src="#frame2" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+        </a-gltf-model>
+        <a-gltf-model src="#frame" position="3 0 -4" scale="3 3 3" stand-in-front-of="dir:forward">
+            <a-image src="#frame3" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+        </a-gltf-model>
+        <a-gltf-model src="#frame" position="-3 0 -12" scale="3 3 3" stand-in-front-of="dir:forward">
+            <a-image src="#frame4" scale="0.31 0.46 1" position="0 0.042 0.25" visible="true"></a-image>
+        </a-gltf-model>
+        <a-light color="#ccc" position="0 0 0" distance="50" intensity="0.9" type="point"></a-light>
+        <a-light id="light_6" color="#FFFFCC" position="0 2.5 0" distance="3" intensity="0.9" type="point"></a-light>
+    </a-entity>
+    <!--展厅6 ------------ end-->
+    <!--展厅7 ------------ begin-->
+    <!--展厅7 ------------ end-->
+    <!--展厅8 ------------ begin-->
+    <!--展厅8 ------------ end-->
+    <!--展厅9 ------------ begin-->
+    <!--展厅9 ------------ end-->
+    <!--展厅10 ------------ begin-->
+    <!--展厅10 ------------ end-->
+    <!--展厅11 ------------ begin-->
+    <!--展厅11 ------------ end-->
+    <!--展厅12 ------------ begin-->
+    <!--展厅12 ------------ end-->
+    <a-entity class="gallery" id="gallery7" position="0 700 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat; src:#scene7; side: back">
+        <a-tetrahedron mixin="door" color="white" position="5 8.3 -8.66" radius="4">
+        </a-tetrahedron>
+    </a-entity>
+    <a-entity class="gallery" id="gallery8" position="0 800 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat; src:#scene8; side: back">
+        <a-tetrahedron mixin="door" color="white" position="5 8.3 -8.66" radius="4">
+
+        </a-tetrahedron>
+    </a-entity>
+    <a-entity class="gallery" id="gallery9" position="0 900 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat; src:#scene9; side: back">
+        <a-tetrahedron color="white" position="5 8.3 -8.66" radius="4">
+
+        </a-tetrahedron>
+    </a-entity>
+    <a-entity class="gallery" id="gallery10" position="0 1000 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat; src:#scene10; side: back">
+        <a-tetrahedron mixin="door" color="white" position="5 8.3 -8.66" radius="4">
+
+        </a-tetrahedron>
+    </a-entity>
+    <a-entity class="gallery" id="gallery11" position="0 1100 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat; src:#scene11; side: back">
+        <a-tetrahedron mixin="door" color="white" position="5 8.3 -8.66" radius="4">
+
+        </a-tetrahedron>
+    </a-entity>
+    <a-entity class="gallery" id="gallery12" position="0 1200 100" geometry="primitive: sphere; radius:50;"
+              material="shader: flat; src:#scene12; side: back">
+        <a-tetrahedron mixin="door" color="white" position="5 8.3 -8.66" radius="4">
+        </a-tetrahedron>
+    </a-entity>
+
+</a-scene>
+</body>
+<script src="js/components/interactive.js"></script>
+</html>
