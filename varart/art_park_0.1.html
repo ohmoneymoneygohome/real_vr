@@ -23,8 +23,42 @@
     <script src="js/components/aframe-mountain-component.js"></script>
     <script src="js/components/noise.js"></script>
     <script src="js/components/aframe-raytrace-component.min.js"></script>
+    <style>
+        #preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #fff;
+            z-index: 999999;
+        }
+        #status {
+            width: 200px;
+            height: 200px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            background-image: url(../images/loader.gif);
+            background-repeat: no-repeat;
+            background-position: center center;
+            text-align: center;
+            margin: -40px 0 0 -100px;
+        }
+        #status img {
+            text-align: center;
+            margin-top: -80px;
+        }
+    </style>
 </head>
 <body>
+<!--PRELOADER-->
+<div id="preloader">
+    <div id="status">
+        <img alt="logo"  src="assets/img/logo.png">
+    </div>
+</div>
+<!--/.PRELOADER END-->
 <script id="blob-fs" type="x-shader/x-fragment">
 
       precision mediump float;
@@ -567,7 +601,7 @@
 <!--音乐控制 begin-->
 <div id="bgm_source">
     <audio id="bgm" loop="loop">
-        <source src="assets/media/bgm.mp3" type="audio/mpeg"/>
+        <source src="assets/media/scene4_Lamplight.mp3" type="audio/mpeg"/>
     </audio>
 
     <audio id="bgm_1" loop="loop">
@@ -632,10 +666,7 @@
         <!--展厅主图-->
 
         <!--作品图-->
-        <img id="youhua1" src="assets/img/painting/youhua1.jpg">
-        <img id="youhua2" src="assets/img/painting/youhua2.jpg">
-        <img id="youhua3" src="assets/img/painting/youhua3.jpg">
-        <img id="youhua4" src="assets/img/painting/youhua4.jpg">
+
         <img id="frame1" src="assets/img/painting/frame1.jpg">
         <img id="frame2" src="assets/img/painting/frame2.jpg">
         <img id="frame3" src="assets/img/painting/frame3.jpg">
@@ -643,10 +674,8 @@
         <img id="frame5" src="assets/img/painting/frame5.jpg">
         <img id="door_texture" src="assets/room/door.jpg">
         <!--<audio id="neigh" src="assets/media/bgm.mp3"></audio>-->
-        <a-asset-item id="dawei-obj" src="assets/models/crate/file.obj"></a-asset-item>
         <a-asset-item id="frame" src="assets/models/frame.glb"></a-asset-item>
         <a-asset-item id="handle" src="assets/room/handle.glb"></a-asset-item>
-        <a-asset-item id="real" src="assets/room/real.glb"></a-asset-item>
         <!--公共属性-->
         <a-mixin id="door" color="white" radius="4"
                  animation="property: position; easing: easeInOutQuad; dir: alternate; dur: 1000; to: 5 8.9 -8.66; loop: true"
@@ -830,9 +859,25 @@
 
     </rw-room>
     <!--全局场景 end-->
-    <a-sphere visible="true" id="out1" position="0 30 0" radius="20" shadow material="shader:noise;color:#035DDA;weight:8"
-    ></a-sphere>
+    <a-sphere visible="true" id="out1" position="0 30 0" radius="5" shadow material="shader:noise;color:#035DDA;weight:8"></a-sphere>
+    <a-sphere visible="true" id="out2" position="10 15 0" radius="5" shadow material="shader:noise;color:#035DDA;weight:8"></a-sphere>
+    <a-sphere visible="true" id="out3" position="0 15 10" radius="5" shadow material="shader:noise;color:#035DDA;weight:8"></a-sphere>
+    <a-sphere visible="true" id="out4" position="-10 15 0" radius="5" shadow material="shader:noise;color:#035DDA;weight:8"></a-sphere>
+    <a-node id="dummy"></a-node>
 </a-scene>
 </body>
 <script src="js/components/interactive.js"></script>
+<script>
+
+        document.querySelector("#dummy").load(function(){
+            console.log(6666666666666666);
+
+                $("#status").delay().fadeOut(); // will first fade out the loading animation
+            $("#preloader").delay().fadeOut("slow"); // will fade out the white DIV that covers the website.
+
+
+        })
+
+
+</script>
 </html>
